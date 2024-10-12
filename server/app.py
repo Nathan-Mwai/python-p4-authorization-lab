@@ -18,6 +18,19 @@ db.init_app(app)
 
 api = Api(app)
 
+@app.before_request
+def check_if_logged_in():
+    accessed_by_all = [
+        'clear',
+        'article_list',
+        'show_article',
+        'login',
+        'logout',
+        'check_session'
+    ]
+
+    if (request.endpoint) not in accessed_by_all and (not session.get('user_id')):
+        return {'error': '401 Unauthorized'}, 401
 class ClearSession(Resource):
 
     def delete(self):
@@ -87,11 +100,17 @@ class CheckSession(Resource):
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        # if not session['user_id']:
+        #     return {"error": "Content reserved for premium users"}, 401 
+        articles = [article.to_dict() for article in Article.query.filter(Article.is_member_only== 1).all()]
+        return make_response(articles, 200)
 
 class MemberOnlyArticle(Resource):
-    
     def get(self, id):
+        # if not session['user_id']:
+        #     return {"error": "Content reserved for premium users"}, 401
+        article = Article.query.filter(Article.id==id).first()
+        return article.to_dict(), 200
         pass
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
